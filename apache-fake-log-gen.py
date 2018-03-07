@@ -5,7 +5,6 @@ import numpy
 import random
 import gzip
 import sys
-import argparse
 from faker import Faker
 from tzlocal import get_localzone
 
@@ -29,8 +28,10 @@ _faker = Faker()
 _ualist = [_faker.firefox, _faker.chrome, _faker.safari, _faker.internet_explorer, _faker.opera]
 _ualist_p = [0.5, 0.3, 0.1, 0.05, 0.05]
 
-_log_level = ["emerg", "alert", "crit", "error", "warn", "notice", "info", "debug"]
-_log_level_p = [0.1, 0.1, 0.1, 0.2, 0.1, 0.1, 0.2, 0.1]
+# log levels for apache 2.4+
+_log_level = ["emerg", "alert", "crit", "error", "warn", "notice", "info", "debug", "trace1", "trace2", "trace3",
+              "trace4", "trace5", "trace6", "trace7", "trace8"]
+_log_level_p = [0.5, 0.5, 0.5, 0.2, 0.5, 0.5, 0.2, 0.5, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375]
 
 _resources = ["/list", "/wp-content", "/wp-admin", "/explore", "/search/tag/list", "/app/main/posts",
               "/posts/posts/explore", "/apps/cart.jsp?appID="]
@@ -165,11 +166,6 @@ def generate(log_lines=_log_lines, file_prefix=_file_prefix, output_type=_output
     flag = True
     while (flag):
         otime = datetime.datetime.now()
-        # if sleep_time:
-        #     increment = datetime.timedelta(seconds=sleep_time)
-        # else:
-        #     increment = datetime.timedelta(seconds=random.randint(30, 300))
-        # otime += increment
 
         stmt = ""
         if str.upper(log_type) == "APACHE_ERROR":
@@ -182,12 +178,15 @@ def generate(log_lines=_log_lines, file_prefix=_file_prefix, output_type=_output
 
         log_lines = log_lines - 1
         flag = False if log_lines == 0 else True
+        # calculate remaining time in interval to wait before begining
         t_wait = ((otime+datetime.timedelta(seconds=sleep_time))-datetime.datetime.now()).total_seconds()
+        # wait if there is time to wait, else begin the next loop
         if t_wait > 0:
             time.sleep(t_wait)
 
 
 if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser(__file__, description="Fake Apache Log Generator")
     parser.add_argument("--output", "-o", dest='output_type', help="Write to a Log file, a gzip file or to STDOUT",
                         choices=['LOG', 'GZ', 'CONSOLE'], default=_output_type)
