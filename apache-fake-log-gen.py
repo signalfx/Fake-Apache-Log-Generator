@@ -2,9 +2,11 @@
 import time
 import datetime
 import numpy
+import os
 import random
 import gzip
 import sys
+from multiprocessing import Process, Lock
 from faker import Faker
 from tzlocal import get_localzone
 
@@ -16,6 +18,7 @@ _file_prefix = None
 _output_type = 'CONSOLE'
 _log_type = 'apache'
 _sleep_time = 0.0
+_file_limit = 0
 
 # static content and their corresponding probabilities
 _response = ["200", "404", "500", "301"]
@@ -37,11 +40,12 @@ _log_level_p = [0.05, 0.05, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0375, 0.0375, 0.0375
 _resources = ["/list", "/wp-content", "/wp-admin", "/explore", "/search/tag/list", "/app/main/posts",
               "/posts/posts/explore", "/apps/cart.jsp?appID="]
 
-# mysql error log messages 
+# mysql error log messages
 _mysql_error_log_startup = [
     "mysqld_safe Logging to '/var/log/mysql/error.log'.",
     "mysqld_safe Starting mysqld daemon with databases from /var/lib/mysql",
-    "0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).",
+    ("0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp"
+     " server option (see documentation for more details)."),
     "0 [Note] /usr/sbin/mysqld (mysqld 5.7.21-0ubuntu0.16.04.1-log) starting as process 600 ...",
     "0 [Note] InnoDB: PUNCH HOLE support available",
     "0 [Note] InnoDB: Mutexes and rw_locks use GCC atomic builtins",
@@ -53,7 +57,8 @@ _mysql_error_log_startup = [
     "0 [Note] InnoDB: Using CPU crc32 instructions",
     "0 [Note] InnoDB: Initializing buffer pool, total size = 128M, instances = 1, chunk size = 128M",
     "0 [Note] InnoDB: Completed initialization of buffer pool",
-    "0 [Note] InnoDB: If the mysqld execution user is authorized, page cleaner thread priority can be changed. See the man page of setpriority().",
+    ("0 [Note] InnoDB: If the mysqld execution user is authorized, page cleaner thread priority can be changed. See "
+     "the man page of setpriority()."),
     "0 [Note] InnoDB: Highest supported file format is Barracuda.",
     "0 [Note] InnoDB: Creating shared tablespace for temporary tables",
     "0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...",
@@ -64,7 +69,8 @@ _mysql_error_log_startup = [
     "0 [Note] InnoDB: Loading buffer pool(s) from /var/lib/mysql/ib_buffer_pool",
     "0 [Note] Plugin 'FEDERATED' is disabled.",
     "0 [Note] InnoDB: Buffer pool(s) load completed at 180327 13:50:19",
-    "0 [Warning] Failed to set up SSL because of the following SSL library error: SSL context is not usable without certificate and private key",
+    ("0 [Warning] Failed to set up SSL because of the following SSL library error: SSL context is not usable without "
+     "certificate and private key"),
     "0 [Note] Server hostname (bind-address): '127.0.0.1'; port: 3306",
     "0 [Note]   - '127.0.0.1' resolves to '127.0.0.1';",
     "0 [Note] Server socket created on IP: '127.0.0.1'.",
@@ -166,7 +172,33 @@ _apache_error_messages = {
     'debug': [
         'debug level statement'
     ],
+    'trace1': [
+        'trace level statement'
+    ],
+    'trace2': [
+        'trace level statement'
+    ],
+    'trace3': [
+        'trace level statement'
+    ],
+    'trace4': [
+        'trace level statement'
+    ],
+    'trace5': [
+        'trace level statement'
+    ],
+    'trace6': [
+        'trace level statement'
+    ],
+    'trace7': [
+        'trace level statement'
+    ],
+    'trace8': [
+        'trace level statement'
+    ]
 }
+
+lock = Lock()
 
 
 class switch(object):
@@ -197,59 +229,74 @@ def get_apache_log_statement(otime=datetime.datetime.now(), local=get_localzone(
     """
     generates an apache log_statement
     """
-    ip = _faker.ipv4()
-    dt = otime.strftime('%d/%b/%Y:%H:%M:%S')
-    tz = datetime.datetime.now(local).strftime('%z')
-    vrb = numpy.random.choice(_verb, p=_verb_p)
+    global lock
+    lock.acquire()
+    try:
+        ip = _faker.ipv4()
+        dt = otime.strftime('%d/%b/%Y:%H:%M:%S')
+        tz = datetime.datetime.now(local).strftime('%z')
+        vrb = numpy.random.choice(_verb, p=_verb_p)
 
-    uri = random.choice(_resources)
-    if uri.find("apps") > 0:
-        uri += str(random.randint(1000, 10000))
+        uri = random.choice(_resources)
+        if uri.find("apps") > 0:
+            uri += str(random.randint(1000, 10000))
 
-    resp = numpy.random.choice(_response, p=_response_p)
-    byt = int(random.gauss(5000, 50))
-    referer = _faker.uri()
-    useragent = numpy.random.choice(_ualist, p=_ualist_p)()
-    return ['%s - - [%s %s] "%s %s HTTP/1.0" %s %s "%s" "%s"\n' %
-            (ip, dt, tz, vrb, uri, resp, byt, referer, useragent)]
+        resp = numpy.random.choice(_response, p=_response_p)
+        byt = int(random.gauss(5000, 50))
+        referer = _faker.uri()
+        useragent = numpy.random.choice(_ualist, p=_ualist_p)()
+        return ['%s - - [%s %s] "%s %s HTTP/1.0" %s %s "%s" "%s"\n' %
+                (ip, dt, tz, vrb, uri, resp, byt, referer, useragent)]
+    finally:
+        lock.release()
 
 
-def get_apache_error_log_statement(log_level=_log_level, log_level_p=_log_level_p, otime=datetime.datetime.now(), 
+def get_apache_error_log_statement(log_level=_log_level, log_level_p=_log_level_p, otime=datetime.datetime.now(),
                                    local=get_localzone()):
     """
     generates an apache error log statement
     """
-    ip = _faker.ipv4()
-    dt = otime.strftime('%a %b %d %H:%M:%S %Y')
-    level = numpy.random.choice(log_level, p=log_level_p)
-    msg = numpy.random.choice(_apache_error_messages[level])
-    return ['[%s] [%s] [client %s] %s \n' % (dt, level, ip, msg)]
+    global lock
+    lock.acquire()
+    try:
+        ip = _faker.ipv4()
+        dt = otime.strftime('%a %b %d %H:%M:%S %Y')
+        level = numpy.random.choice(log_level, p=log_level_p)
+        msg = numpy.random.choice(_apache_error_messages[level])
+        return ['[%s] [%s] [client %s] %s \n' % (dt, level, ip, msg)]
+    finally:
+        lock.release()
 
 
 def _get_mysql_error_log_startup_or_shutdown(otime=datetime.datetime.now()):
     """
     returns either a start up or shutdown statement for the mysql error log
     """
-    # 2018-03-27T13:50:20.397608Z
-    time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
-    dt = otime.strftime(time_fmt)
-    outgoing = []
-    incoming = _mysql_error_log_startup
-    global __mysql_error_started
-    if '__mysql_error_started' in globals() and __mysql_error_started:
-        incoming = _mysql_error_log_shutdown
-        __mysql_error_started = False
-    else:
-        __mysql_error_started = True
-
-    for stmt in incoming:
-        if stmt == '':
-            outgoing.append('\n')
+    global lock
+    lock.acquire()
+    try:
+        # 2018-03-27T13:50:20.397608Z
+        time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
+        dt = otime.strftime(time_fmt)
+        outgoing = []
+        incoming = _mysql_error_log_startup
+        global __mysql_error_started
+        if '__mysql_error_started' in globals() and __mysql_error_started:
+            incoming = _mysql_error_log_shutdown
+            __mysql_error_started = False
         else:
-            outgoing.append('{0} {1}\n'.format(dt, stmt))
-            otime = datetime.datetime.now()
-            dt = otime.strftime(time_fmt)
-    return outgoing
+            __mysql_error_started = True
+
+        for stmt in incoming:
+            if stmt == '':
+                outgoing.append('\n')
+            else:
+                outgoing.append('{0} {1}\n'.format(dt, stmt))
+                otime = datetime.datetime.now()
+                dt = otime.strftime(time_fmt)
+        return outgoing
+    finally:
+        lock.release()
 
 
 def get_mysql_error_log_statement(log_level=_log_level, log_level_p=_log_level_p, otime=datetime.datetime.now(),
@@ -257,21 +304,26 @@ def get_mysql_error_log_statement(log_level=_log_level, log_level_p=_log_level_p
     """
     generate mysql log statements
     """
-    # 2018-03-27T13:50:20.397608Z
-    time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
-    dt = otime.strftime(time_fmt)
-    level = numpy.random.choice(log_level, p=log_level_p)
-    outgoing = []
+    global lock
+    lock.acquire()
+    try:
+        # 2018-03-27T13:50:20.397608Z
+        time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
+        dt = otime.strftime(time_fmt)
+        level = numpy.random.choice(log_level, p=log_level_p)
+        outgoing = []
 
-    global __mysql_error_started
-    if '__mysql_error_started' not in globals() or numpy.random.choice([True, False], p=[0.05, 0.95]) or \
-       not __mysql_error_started:
-        outgoing = _get_mysql_error_log_startup_or_shutdown(otime=otime)
+        global __mysql_error_started
+        if '__mysql_error_started' not in globals() or numpy.random.choice([True, False], p=[0.05, 0.95]) or \
+           not __mysql_error_started:
+            outgoing = _get_mysql_error_log_startup_or_shutdown(otime=otime)
 
-    if not outgoing:
-        outgoing = ['%s 0 [%s] seemingly random log message \n' % (dt, level)]
+        if not outgoing:
+            outgoing = ['%s 0 [%s] seemingly random log message \n' % (dt, level)]
 
-    return outgoing
+        return outgoing
+    finally:
+        lock.release()
 
 
 def _get_file_name(log_type=_log_type, file_prefix=_file_prefix):
@@ -289,20 +341,23 @@ def _get_file_name(log_type=_log_type, file_prefix=_file_prefix):
 def generate(log_lines=_log_lines, file_prefix=_file_prefix, output_type=_output_type, log_type=_log_type,
              sleep_time=_sleep_time, resources=_resources,
              ua_list=_ualist, ua_list_p=_ualist_p,
-             verb=_verb, verb_p=_verb_p,
+             verb=_verb, verb_p=_verb_p, file_limit=_file_limit,
              log_level=_log_level, log_level_p=_log_level_p):
     """
     generates a log statement
     """
     local = get_localzone()
     otime = datetime.datetime.now()
+    filename = ""
 
     for case in switch(output_type):
         if case('LOG'):
-            f = open(_get_file_name(log_type, file_prefix), 'w')
+            filename = _get_file_name(log_type, file_prefix)
+            f = open(filename, 'w')
             break
         if case('GZ'):
-            f = gzip.open(_get_file_name(log_type, file_prefix)+'.gz', 'w')
+            filename = _get_file_name(log_type, file_prefix)+'.gz'
+            f = gzip.open(filename, 'w')
             break
         if case('CONSOLE'):
             pass
@@ -324,6 +379,20 @@ def generate(log_lines=_log_lines, file_prefix=_file_prefix, output_type=_output
             return
 
         for stmt in stmts:
+            for case in switch(output_type):
+                if case('LOG'):
+                    if os.path.getsize(filename) > file_limit:
+                        f.seek(0)
+                        f.truncate()
+                    break
+                if case('GZ'):
+                    if os.path.getsize(filename) > file_limit:
+                        f.close()
+                        os.remove(filename)
+                        f = gzip.open(filename, 'w')
+                    break
+                if case('CONSOLE'):
+                    break
             f.write(stmt)
             f.flush()
 
@@ -347,7 +416,20 @@ if __name__ == "__main__":
                         default=_file_prefix)
     parser.add_argument("--sleep", "-s", dest='sleep_time', help="Sleep this long between lines (in seconds)",
                         default=_sleep_time, type=float)
-    parser.add_argument("--type", "-t", dest='log_type', help="Specify the type of log you wish to generate",
+    parser.add_argument("--type", "-t", nargs="+", dest='log_type',
+                        help="Specify the types of log you wish to generate",
                         choices=['apache', 'apache_error', 'mysql_error'], default=_log_type, type=str)
+    parser.add_argument("--file-size-limit", "-l", dest='file_limit', help="specify the maximum file size in mb",
+                        type=int, default=_file_limit)
     args = parser.parse_args()
-    generate(args.num_lines, args.file_prefix, args.output_type, args.log_type, sleep_time=args.sleep_time)
+
+    processes = []
+    for t in args.log_type:
+        processes.append(Process(target=generate, args=(args.num_lines, args.file_prefix, args.output_type, t),
+                                 kwargs={"file_limit": args.file_limit, "sleep_time": args.sleep_time}))
+
+    for p in processes:
+        p.start()
+
+    for p in processes:
+        p.join()
