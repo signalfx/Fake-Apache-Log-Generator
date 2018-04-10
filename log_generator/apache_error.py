@@ -1,7 +1,7 @@
-from common import Faker
+from .common import Faker
 import datetime
 from tzlocal import get_localzone
-from log_generator import BaseGenerator
+from .log_generator import BaseGenerator
 import numpy
 
 
@@ -74,7 +74,7 @@ class Generator(BaseGenerator):
         }
         super(Generator, self).__init__("apache_error")
 
-    def getLogStatement(self, otime=datetime.datetime.now(), local=get_localzone()):
+    def getLogStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
         """
         generates an apache error log statement
         """

@@ -3,7 +3,7 @@ from tzlocal import get_localzone
 import gzip
 import numpy
 import os
-from common import switch
+from .common import switch
 import sys
 import time
 
@@ -13,13 +13,13 @@ class BaseGenerator(object):
         self.log_type = log_type
         self.stop_probability = stop_probability
 
-    def getLogStatement(otime=datetime.datetime.now(), local=get_localzone()):
+    def getLogStatement(otime=datetime.datetime.now(), local=get_localzone(), state={}):
         pass
 
-    def getStartStatement(self, otime=datetime.datetime.now(), local=get_localzone()):
+    def getStartStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
         return []
 
-    def getStopStatement(self, otime=datetime.datetime.now(), local=get_localzone()):
+    def getStopStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
         return []
 
     def _get_file_name(self, file_prefix=None):
@@ -34,6 +34,8 @@ class BaseGenerator(object):
             log_name = 'error_log'
         elif str.upper(self.log_type) == 'MYSQL_ERROR':
             log_name = 'mysql_error'
+        elif str.upper(self.lot_type) == 'MYSQL':
+            log_name = 'mysql'
         return log_name+'_'+timestr+'.log' if not file_prefix else file_prefix+'_'+log_name+'_'+timestr+'.log'
 
     def _getOutputObj(self, output_type, filename='', output=None, limit=None):
@@ -80,6 +82,8 @@ class BaseGenerator(object):
         filename = self._get_file_name(file_prefix)
         output = self._getOutputObj(output_type=output_type, filename=filename)
 
+        state = {}
+
         started = False
 
         while (True):
@@ -93,15 +97,18 @@ class BaseGenerator(object):
                 started = False
 
             if len(stmts) == 0:
-                stmts = self.getLogStatement(otime, local)
+                stmts = self.getLogStatement(otime, local, state=state)
 
+            # check for truncation and write out
             for stmt in stmts:
                 output = self._getOutputObj(output=output, filename=filename, limit=limit,
                                             output_type=output_type)
                 output.write(stmt)
                 output.flush()
+                log_lines = log_lines - 1
+                if log_lines == 0:
+                    break
 
-            log_lines = log_lines - 1
             if log_lines == 0:
                 break
             # calculate remaining time in interval to wait before begining

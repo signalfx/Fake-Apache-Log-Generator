@@ -1,6 +1,6 @@
 import datetime
 from tzlocal import get_localzone
-from log_generator import BaseGenerator
+from .log_generator import BaseGenerator
 import numpy
 
 
@@ -123,13 +123,13 @@ class Generator(BaseGenerator):
                 dt = otime.strftime(time_fmt)
         return outgoing
 
-    def getStartStatement(self, otime=datetime.datetime.now(), local=get_localzone()):
+    def getStartStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
         return self._format_statements(self.start_stmts)
 
-    def getStopStatement(self, otime=datetime.datetime.now(), local=get_localzone()):
+    def getStopStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
         return self._format_statements(self.stop_stmts)
 
-    def getLogStatement(self, otime=datetime.datetime.now(), local=get_localzone()):
+    def getLogStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
         """
         generate mysql log statements
         """

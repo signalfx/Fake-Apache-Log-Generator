@@ -1,7 +1,7 @@
-from common import Faker
+from .common import Faker
 import datetime
 from tzlocal import get_localzone
-from log_generator import BaseGenerator
+from .log_generator import BaseGenerator
 import numpy
 import random
 
@@ -20,7 +20,7 @@ class Generator(BaseGenerator):
         self._ualist_p = [0.5, 0.3, 0.1, 0.05, 0.05]
         super(Generator, self).__init__("apache")
 
-    def getLogStatement(self, otime=datetime.datetime.now(), local=get_localzone()):
+    def getLogStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
         """
         generates an apache log_statement
         """
