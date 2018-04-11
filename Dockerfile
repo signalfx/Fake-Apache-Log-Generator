@@ -16,5 +16,6 @@ RUN echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/reposit
     && apk --no-cache add openblas \
     && mkdir -p /logs
 COPY --from=build /usr/local/lib /usr/local/lib
-COPY apache-fake-log-gen.py /usr/src/app/
-ENTRYPOINT [ "python", "/usr/src/app/apache-fake-log-gen.py" ]
+COPY . /usr/src/app/
+VOLUME ["/logs"]
+ENTRYPOINT [ "python", "/usr/src/app/log_generator.py" ]
