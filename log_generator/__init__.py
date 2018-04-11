@@ -1,9 +1,9 @@
-from .log_generator import BaseGenerator
-from .apache import Generator as Apache
-from .apache_error import Generator as ApacheError
-from .mysql_error import Generator as MySQLError
-from .mysql import Generator as MySQL
-# from apache_error import ApacheErrorLogGenerator as ApacheError
+from .log_generator import Generator
+import importlib
+from .common import log_types
 
+__all__ = ['Generator']
 
-__all__ = ['Apache', 'ApacheError', 'MySQL', 'MySQLError', 'BaseGenerator']
+for t in log_types:
+    importlib.import_module('log_generator.{0}'.format(t))
+    __all__.append(t)

@@ -1,12 +1,12 @@
 from .common import Faker
 import datetime
 from tzlocal import get_localzone
-from .log_generator import BaseGenerator
+from . import log_generator
 import numpy
 import random
 
 
-class Generator(BaseGenerator):
+class Generator(log_generator.Generator):
     def __init__(self):
         self._faker = Faker()
         self._verb = ["GET", "POST", "DELETE", "PUT"]

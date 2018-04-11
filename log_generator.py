@@ -1,10 +1,11 @@
 #!/usr/bin/python
 import log_generator
+import os
 from multiprocessing import Process
 
 # default argument values
 _log_lines = 5
-_file_prefix = None
+_file_prefix = ''
 _output_type = 'CONSOLE'
 _log_type = ['apache']
 _sleep_time = 0.0
@@ -25,26 +26,20 @@ if __name__ == "__main__":
                         default=_sleep_time, type=float)
     parser.add_argument("--type", "-t", nargs="+", dest='log_type',
                         help="Specify the types of log you wish to generate",
-                        choices=['apache', 'apache_error', 'mysql', 'mysql_error'], default=_log_type, type=str)
+                        choices=log_generator.common.log_types, default=_log_type, type=str)
     parser.add_argument("--file-size-limit", "-l", dest='file_size_limit', help="specify the maximum file size in mb",
                         type=int, default=_file_size_limit)
+    parser.add_argument("--output-dir", "-d", dest='output_dir', help="The directory to output logs to", type=str,
+                        default=os.path.join(".", "logs"))
     args = parser.parse_args()
     processes = []
+
     for t in args.log_type:
-        generator = log_generator.Apache()
-        if t == 'mysql_error':
-            generator = log_generator.MySQLError()
-        elif t == 'apache_error':
-            generator = log_generator.ApacheError()
-        elif t == 'apache':
-            generator = log_generator.Apache()
-        elif t == 'mysql':
-            generator = log_generator.MySQL()
-        processes.append(Process(target=generator.generate,
+        processes.append(Process(target=getattr(log_generator, t).Generator().generate,
                                  kwargs={
                                      'output_type': args.output_type,
                                      'log_lines': args.num_lines,
-                                     'file_prefix': args.file_prefix,
+                                     'file_prefix': os.path.join(args.output_dir, args.file_prefix),
                                      'sleep_time': args.sleep_time,
                                      'limit': args.file_size_limit
                                      }))

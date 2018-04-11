@@ -1,11 +1,11 @@
 from .common import Faker
 import datetime
 from tzlocal import get_localzone
-from .log_generator import BaseGenerator
+from . import log_generator
 import numpy
 
 
-class Generator(BaseGenerator):
+class Generator(log_generator.Generator):
     def __init__(self):
         self._faker = Faker()
 

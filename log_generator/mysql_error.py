@@ -1,10 +1,10 @@
 import datetime
 from tzlocal import get_localzone
-from .log_generator import BaseGenerator
+from . import log_generator
 import numpy
 
 
-class Generator(BaseGenerator):
+class Generator(log_generator.Generator):
     def __init__(self):
         # log levels for apache 2.4+
         self.log_level = ["Error", "Warning", "Note"]

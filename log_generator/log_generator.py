@@ -3,12 +3,12 @@ from tzlocal import get_localzone
 import gzip
 import numpy
 import os
-from .common import switch
+from .common import switch, log_types
 import sys
 import time
 
 
-class BaseGenerator(object):
+class Generator(object):
     def __init__(self, log_type=None, stop_probability=0.05):
         self.log_type = log_type
         self.stop_probability = stop_probability
@@ -28,14 +28,8 @@ class BaseGenerator(object):
         """
         timestr = time.strftime("%Y%m%d-%H%M%S")
         log_name = ''
-        if str.upper(self.log_type) == 'APACHE':
-            log_name = 'access_log'
-        elif str.upper(self.log_type) == 'APACHE_ERROR':
-            log_name = 'error_log'
-        elif str.upper(self.log_type) == 'MYSQL_ERROR':
-            log_name = 'mysql_error'
-        elif str.upper(self.lot_type) == 'MYSQL':
-            log_name = 'mysql'
+        if str.lower(self.log_type) in log_types:
+            log_name = str.lower(self.log_type)
         return log_name+'_'+timestr+'.log' if not file_prefix else file_prefix+'_'+log_name+'_'+timestr+'.log'
 
     def _getOutputObj(self, output_type, filename='', output=None, limit=None):
@@ -48,7 +42,7 @@ class BaseGenerator(object):
                     output = open(filename, 'w')
                     break
                 if case('GZ'):
-                    output = gzip.open(filename+'.gz', 'w')
+                    output = gzip.open(filename+'.gz', 'wb')
                     break
                 if case('CONSOLE'):
                     pass
@@ -65,7 +59,7 @@ class BaseGenerator(object):
                     if os.path.getsize(filename) > limit:
                         output.close()
                         os.remove(filename)
-                        output = gzip.open(filename, 'w')
+                        output = gzip.open(filename, 'wb')
                     break
                 if case('CONSOLE'):
                     pass
@@ -103,7 +97,14 @@ class BaseGenerator(object):
             for stmt in stmts:
                 output = self._getOutputObj(output=output, filename=filename, limit=limit,
                                             output_type=output_type)
-                output.write(stmt)
+                for case in switch(output_type):
+                    if case('GZ'):
+                        output.write(bytes(stmt, 'utf-8'))
+                        break
+                    if case('CONSOLE') or case('LOG'):
+                        pass
+                    if case():
+                        output.write(stmt)
                 output.flush()
                 log_lines = log_lines - 1
                 if log_lines == 0:

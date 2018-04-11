@@ -2,6 +2,8 @@ from faker import Faker
 
 faker = Faker()
 
+log_types = ['apache', 'apache_error', 'mysql', 'mysql_error']
+
 
 class switch(object):
     """
