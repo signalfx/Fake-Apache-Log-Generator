@@ -4,6 +4,7 @@ import gzip
 import numpy
 import os
 from .common import switch, log_types
+import random
 import sys
 import time
 
@@ -67,7 +68,7 @@ class Generator(object):
                     output = sys.stdout
         return output
 
-    def generate(self, output_type='CONSOLE', log_lines=-1, file_prefix=None, sleep_time=0, limit=None):
+    def generate(self, output_type='CONSOLE', log_lines=-1, file_prefix=None, sleep_time=0, limit=None, max_dither=0):
         """
         generates a log statement
         """
@@ -112,8 +113,12 @@ class Generator(object):
 
             if log_lines == 0:
                 break
+
+            sleep_amount = sleep_time + random.randint(0, max_dither)
+
             # calculate remaining time in interval to wait before begining
-            t_wait = ((otime+datetime.timedelta(seconds=sleep_time))-datetime.datetime.now()).total_seconds()
+            t_wait = ((otime+datetime.timedelta(seconds=sleep_amount))-datetime.datetime.now()).total_seconds()
+
             # wait if there is time to wait, else begin the next loop
             if t_wait > 0:
                 time.sleep(t_wait)

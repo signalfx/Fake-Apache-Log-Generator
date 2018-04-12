@@ -31,6 +31,8 @@ if __name__ == "__main__":
                         type=int, default=_file_size_limit)
     parser.add_argument("--output-dir", "-d", dest='output_dir', help="The directory to output logs to", type=str,
                         default=os.path.join(".", "logs"))
+    parser.add_argument("--max-dither", "-f", dest='dither', type=float, default=0.0,
+                        help="causes the interval to dither randomly between 0 and the provided  value")
     args = parser.parse_args()
     processes = []
 
@@ -41,7 +43,8 @@ if __name__ == "__main__":
                                      'log_lines': args.num_lines,
                                      'file_prefix': os.path.join(args.output_dir, args.file_prefix),
                                      'sleep_time': args.sleep_time,
-                                     'limit': args.file_size_limit
+                                     'limit': args.file_size_limit,
+                                     'max_dither': args.dither
                                      }))
     for p in processes:
         p.start()
