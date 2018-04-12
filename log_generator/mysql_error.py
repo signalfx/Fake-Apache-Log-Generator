@@ -111,16 +111,16 @@ class Generator(log_generator.Generator):
         super(Generator, self).__init__("mysql_error")
 
     def _format_statements(self, stmts, otime=datetime.datetime.now(), local=get_localzone()):
-        time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'  # 2018-03-27T13:50:20.397608Z
+        time_fmt = '%Y-%m-%d %H:%M:%S'  # 2015-10-27 07:33:42
         dt = otime.strftime(time_fmt)
         outgoing = []
         for stmt in stmts:
             if stmt == '':
                 outgoing.append('\n')
             else:
-                outgoing.append('{0} {1}\n'.format(dt, stmt))
                 otime = datetime.datetime.now()
                 dt = otime.strftime(time_fmt)
+                outgoing.append('{0} {1}\n'.format(dt, stmt))
         return outgoing
 
     def getStartStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
@@ -133,7 +133,7 @@ class Generator(log_generator.Generator):
         """
         generate mysql log statements
         """
-        time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'  # 2018-03-27T13:50:20.397608Z
+        time_fmt = '%Y-%m-%d %H:%M:%S'  # 2015-10-27 07:33:42
         dt = otime.strftime(time_fmt)
         level = numpy.random.choice(self.log_level, p=self.log_level_p)
         outgoing = ['%s 0 [%s] seemingly random log message \n' % (dt, level)]

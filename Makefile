@@ -3,7 +3,7 @@
 default: container
 
 container: clean
-	docker build -t log-generator:latest .
+	docker build -t log-mocker:latest .
 
 clean:
 	rm -rf ./log_generator/*.pyc
