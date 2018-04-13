@@ -21,8 +21,22 @@ class Generator(log_generator.Generator):
         self._query_statements_p = query_statements_p
         self._op_statements = op_statements
         self._op_statements_p = op_statements_p
+
         self._time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
-        super(Generator, self).__init__("mysql_general")
+
+        # start up statements
+        self._start = [
+            "/usr/sbin/mysqld, Version: 5.7.21-0ubuntu0.16.04.1-log ((Ubuntu)). started with:",
+            "Tcp port: 3306  Unix socket: /var/run/mysqld/mysqld.sock",
+            "Time                 Id Command    Argument"
+        ]
+        super(Generator, self).__init__("mysql_general", 0.001)
+
+    def getStartStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
+        outgoing = []
+        for stmt in self._start:
+            outgoing.append('{0}\n'.format(stmt))
+        return outgoing
 
     def _getTime(self, otime=None, local=get_localzone()):
         if otime is None:

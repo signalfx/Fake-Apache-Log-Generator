@@ -29,6 +29,12 @@ class Generator(log_generator.Generator):
 
         self._time_fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
         self._faker = common.faker
+        # start up statements
+        self._start = [
+            '/usr/sbin/mysqld, Version: 5.7.21-0ubuntu0.16.04.1-log ((Ubuntu)). started with:',
+            'Tcp port: 3306  Unix socket: /var/run/mysqld/mysqld.sock',
+            'Time                 Id Command    Argument'
+        ]
 
         self._preamble = (
             '# Time: {time}\n'
@@ -37,7 +43,13 @@ class Generator(log_generator.Generator):
             '{rows_exam:>2}\n'
             'use {db};\n'
             'SET timestamp={ts};')
-        super(Generator, self).__init__("mysql_slow")
+        super(Generator, self).__init__("mysql_slow", 0.001)
+
+    def getStartStatement(self, otime=datetime.datetime.now(), local=get_localzone(), state={}):
+        outgoing = []
+        for stmt in self._start:
+            outgoing.append('{0}\n'.format(stmt))
+        return outgoing
 
     def _getTime(self, otime=None, local=get_localzone()):
         if otime is None:
