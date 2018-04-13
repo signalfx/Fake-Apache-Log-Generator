@@ -53,14 +53,15 @@ class Generator(object):
             for case in switch(output_type):
                 if case('LOG'):
                     if os.path.getsize(filename) > limit:
-                        output.seek(0)
-                        output.truncate()
+                        output.close()
+                        os.remove(filename)
+                        output = open(filename, 'w')
                     break
                 if case('GZ'):
                     if os.path.getsize(filename) > limit:
                         output.close()
                         os.remove(filename)
-                        output = gzip.open(filename, 'wb')
+                        output = gzip.open(filename+'.gz', 'wb')
                     break
                 if case('CONSOLE'):
                     pass
