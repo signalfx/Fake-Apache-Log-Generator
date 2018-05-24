@@ -3,8 +3,18 @@
 default: container
 
 container: clean
-	docker build -t log-generator:latest .
+	docker build -t quay.io/signalfx/log-generator:dev .
+
+run:
+	docker run -tdi --name log-generator --restart always -v $(CURDIR)/logs:/logs quay.io/signalfx/log-generator:dev -o LOG -n 0 -d /logs -t apache apache_error mysql_error mysql_general mysql_slow -l 10000 --max-dither 5
+
+tag:
+	docker tag quay.io/signalfx/log-generator:dev quay.io/signalfx/log-generator:latest
+
+push:
+	docker push quay.io/signalfx/log-generator:latest
 
 clean:
-	rm -rf ./log_generator/*.pyc
-	rm -rf ./*.pyc
+	rm -rf $(CURDIR)/logs/*.log
+	rm -rf $(CURDIR)/log_generator/*.pyc
+	rm -rf $(CURDIR)/*.pyc
