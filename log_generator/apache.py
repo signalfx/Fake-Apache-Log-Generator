@@ -12,7 +12,7 @@ class Generator(log_generator.Generator):
         self._verb = ["GET", "POST", "DELETE", "PUT"]
         self._verb_p = [0.6, 0.1, 0.1, 0.2]
         self._response = ["200", "404", "500", "301"]
-        self._response_p = [0.9, 0.04, 0.02, 0.04]
+        self._response_p = [0.5, 0.15, 0.2, 0.15]
         self._resources = ["/list", "/wp-content", "/wp-admin", "/explore", "/search/tag/list", "/app/main/posts",
                            "/posts/posts/explore", "/apps/cart.jsp?appID="]
         self._ualist = [self._faker.firefox, self._faker.chrome, self._faker.safari, self._faker.internet_explorer,
